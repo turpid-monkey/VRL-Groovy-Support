@@ -1,0 +1,140 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'maven-publish'
+apply plugin: 'jacoco'
+apply plugin: 'com.github.kt3k.coveralls'
+apply plugin: 'eclipse'
+apply plugin: 'com.jfrog.artifactory'
+
+version = '0.2-SNAPSHOT'
+group = 'edu.gcsc.lua'
+
+if (System.env['TRAVIS'] != null) {
+    project.ext.set ("buildInfo.build.number", System.env.TRAVIS_BUILD_NUMBER)
+    project.ext.set ("buildInfo.build.name", rootProject.name)
+} else {
+    project.ext.set ("buildInfo.build.number", '0' )
+    project.ext.set ("buildInfo.build.name", rootProject.name+"-local")
+}
+
+sourceCompatibility = '1.6'
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+	
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.2.1'
+}
+
+repositories {
+    mavenCentral()
+    // You may define additional repositories, or even remove "mavenCentral()".
+    // Read more about repositories here:
+    //   http://www.gradle.org/docs/current/userguide/dependency_management.html#sec:repositories
+    
+    maven {
+        url "https://oss.sonatype.org/content/repositories/snapshots"
+    }
+ 
+    maven {
+        name 'JFrog OSS snapshot repo'
+        url  'https://oss.jfrog.org/oss-snapshot-local/'
+    }  
+}
+
+buildscript {
+    repositories {
+    	maven {
+            url 'http://oss.jfrog.org/artifactory/plugins-release'    
+        }
+        maven {
+            name 'jcenter'
+            url  'http://jcenter.bintray.com'
+        }
+    }
+
+    dependencies {
+        classpath 'me.champeau.gradle:antlr4-gradle-plugin:0.1'
+        classpath 'org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.0.1'
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.0'
+        classpath(group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '3.0.1')
+    }
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.10'
+    testCompile group: 'org.easymock', name: 'easymock', version: '3.3'
+    
+    compile (group: 'eu.mihosoft.vrl', name: 'vrl', version: '0.4.2.8.6-SNAPSHOT')
+    compile (group: 'eu.mihosoft.vrl', name: 'vrl', version: '0.4.2.8.6-SNAPSHOT', classifier: 'sources')
+    compile (group: 'eu.mihosoft.vrl', name: 'vrl', version: '0.4.2.8.6-SNAPSHOT', classifier: 'javadoc')
+ 
+}
+
+def loadProperties(String sourceFileName) {
+    
+    def config = new Properties()
+    def propFile = new File(projectDir,sourceFileName)
+    
+    if (propFile.isFile()) {
+        config.load(new FileInputStream(propFile))
+        for (Map.Entry property in config) {
+            ext.set(property.key, property.value)
+        }
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            jar
+        }
+    }
+}
+
+artifactory {
+    contextUrl = "http://oss.jfrog.org/artifactory" 
+    publish {
+        repository {
+            repoKey = 'oss-snapshot-local'
+            username = "turpid-monkey"
+            password = System.getenv()['bintrayKey']
+            maven = true
+        }
+        defaults {
+            publications ('mavenJava')
+        }
+    }
+    resolve {
+        repository {
+            repoKey = 'libs-release'
+            maven = true           
+        }
+    }
+}
+
+// create a fat-jar (class files plus dependencies
+// excludes VRL.jar (plugin jar files must not start with 'vrl-\\d+')
+jar {
+
+    // dependencies except VRL
+    from configurations.runtime.asFileTree.
+        filter({file->return !file.name.startsWith("vrl-0")}).
+        files.collect { zipTree(it) }
+
+    // project class files compiled from source
+    from files(sourceSets.main.output.classesDir)
+}
+
+// loads the property file
+loadProperties('build.properties')
+
+// compiles and installs the vrl plugin to the specified folder
+task installVRLPlugin(dependsOn: [clean,jar]) << {
+    def vrlPluginPath = System.getenv()['HOME'] + "/" + vrldir+ "/plugin-updates"
+    println(">> copying vrl plugin to: " + vrlPluginPath)
+    copy {
+        from buildDir.getPath()+"/libs/"+rootProject.name + "-" + rootProject.version + ".jar"
+        into vrlPluginPath
+        include '**/*.jar'
+    }
+}
