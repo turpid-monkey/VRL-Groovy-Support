@@ -33,6 +33,7 @@ import org.fife.ui.rsyntaxtextarea.folding.FoldParser;
 
 public class GroovyFoldParser implements FoldParser {
 
+	@SuppressWarnings("rawtypes")
 	@Override
 	public List getFolds(RSyntaxTextArea arg0) {
 		return Collections.EMPTY_LIST;

@@ -25,8 +25,71 @@
  */
 package edu.gcsc.vrl.langsupport.groovy;
 
+import eu.mihosoft.vrl.instrumentation.VRLVisualizationTransformation;
+import eu.mihosoft.vrl.lang.model.CodeRange;
+import eu.mihosoft.vrl.lang.model.Scope;
+import eu.mihosoft.vrl.lang.model.UIBinding;
+import eu.mihosoft.vrl.lang.model.Variable;
+import groovy.lang.GroovyClassLoader;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+import javax.swing.text.JTextComponent;
+
+import org.codehaus.groovy.control.CompilerConfiguration;
+import org.codehaus.groovy.control.customizers.ASTTransformationCustomizer;
+import org.fife.ui.autocomplete.Completion;
 import org.fife.ui.autocomplete.DefaultCompletionProvider;
+import org.fife.ui.autocomplete.VariableCompletion;
 
 public class GroovyCompletionProvider extends DefaultCompletionProvider {
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	protected List getCompletionsImpl(JTextComponent textComponent) {
+		List<Completion> completions = new ArrayList<Completion>();
+		String groovyScript = textComponent.getText();
+
+		UIBinding.scopes.clear();
+		
+		CompilerConfiguration conf = new CompilerConfiguration();
+		conf.addCompilationCustomizers(new ASTTransformationCustomizer(
+				new VRLVisualizationTransformation()));
+		GroovyClassLoader loader = new GroovyClassLoader(this.getClass().getClassLoader(), conf);
+		loader.parseClass(groovyScript);
+		try {
+			loader.close();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+
+		CodeRange cr = new CodeRange(textComponent.getCaretPosition(),
+				textComponent.getCaretPosition());
+		// checking whether code from new model is identical to new code
+		for (Collection<Scope> scopeList : UIBinding.scopes.values()) {
+			recurse(scopeList, cr, completions);
+		}
+
+		this.addCompletions(completions);
+		return super.getCompletionsImpl(textComponent);
+	}
+
+	void recurse(Collection<Scope> parent, CodeRange cursor,
+			List<Completion> completions) {
+		for (Scope s : parent) {
+			// System.out.println("scope with range " + s.getRange());
+			if (s.getRange().contains(cursor)) {
+				for (Variable v : s.getVariables()) {
+					VariableCompletion var = new VariableCompletion(this, v.getName(),
+							v.getType().getShortName());
+                    completions.add(var);
+				}
+			}
+			recurse(s.getScopes(), cursor, completions);
+		}
+	}
 
 }

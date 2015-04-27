@@ -49,7 +49,7 @@ import groovy.lang.Script;
  *
  * @author Michael Hoffer <info@michaelhoffer.de>
  */
-@TypeInfo(type = String.class, input = true, output = false, style = "lua-code")
+@TypeInfo(type = String.class, input = true, output = false, style = "groovy-code")
 public class InputGroovyCodeType extends TypeRepresentationBase {
 
     private VCodeEditor editor;
@@ -101,7 +101,7 @@ public class InputGroovyCodeType extends TypeRepresentationBase {
     }
     
     protected VCodeEditor createEditor() {
-        return EditorProvider.getEditor("lua", this);
+        return EditorProvider.getEditor("groovy", this);
     }
     
     @Override
@@ -208,18 +208,6 @@ public class InputGroovyCodeType extends TypeRepresentationBase {
         }
     }
 
-//    @Override()
-//    public String getValueAsCode() {
-//        String result = "null";
-//
-//        Object o = getValue();
-//
-//        if (o != null) {
-//            result = "\"" + o.toString() + "\"";
-//        }
-//
-//        return result;
-//    }
     @Override
     public String getValueAsCode() {
         return "\""

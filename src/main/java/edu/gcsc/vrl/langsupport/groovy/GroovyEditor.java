@@ -25,55 +25,23 @@
  */
 package edu.gcsc.vrl.langsupport.groovy;
 
-import java.awt.event.KeyEvent;
-
-import javax.swing.KeyStroke;
-
-import org.fife.ui.autocomplete.AutoCompletion;
-import org.fife.ui.autocomplete.CompletionCellRenderer;
-import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
-import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
-import org.fife.ui.rsyntaxtextarea.folding.FoldParserManager;
-
-import eu.mihosoft.vrl.lang.visual.EditorConfiguration;
-import eu.mihosoft.vrl.reflection.VisualCanvas;
+import eu.mihosoft.vrl.annotation.ComponentInfo;
+import eu.mihosoft.vrl.annotation.OutputInfo;
+import eu.mihosoft.vrl.annotation.ParamInfo;
+import java.io.Serializable;
 
 /**
  *
- * @author Michael Hoffer &lt;info@michaelhoffer.de&gt;
+ * @author Michael Hoffer <info@michaelhoffer.de>
  */
-class GroovyEditorConfiguration implements EditorConfiguration {
-
-	GroovyCompletionProvider prov;
-	AutoCompletion ac;
-	
-	@Override
-	public void init(VisualCanvas vc) {
-		prov = new GroovyCompletionProvider();
-		ac = new AutoCompletion(prov);
-	}
-
-	@Override
-	public void configure(RSyntaxTextArea textArea) {
-
-		textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_GROOVY);
-		textArea.setCodeFoldingEnabled(true);
-		textArea.setAntiAliasingEnabled(true);
-
-		FoldParserManager.get().addFoldParserMapping(
-				SyntaxConstants.SYNTAX_STYLE_GROOVY, new GroovyFoldParser());
-
-		ac.setShowDescWindow(true);
-		ac.install(textArea);
-		ac.setListCellRenderer(new CompletionCellRenderer());
-
-		ac.setTriggerKey(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,
-				KeyEvent.CTRL_DOWN_MASK | KeyEvent.ALT_DOWN_MASK));
-	}
-
-	@Override
-	public String getLanguage() {
-		return "groovy";
-	}
-
+@ComponentInfo(name="Groovy Editor", category="VRL/Language/Groovy")
+public class GroovyEditor implements Serializable{
+    
+    private static final long serialVersionUID = 1L;
+    
+    @OutputInfo(style = "silent", name = " ")
+    public String run(@ParamInfo(name=" ", style="groovy-code") String code) {
+        return code;
+    }
+    
 }

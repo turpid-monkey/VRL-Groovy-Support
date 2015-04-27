@@ -25,55 +25,25 @@
  */
 package edu.gcsc.vrl.langsupport.groovy;
 
-import java.awt.event.KeyEvent;
+import static org.junit.Assert.*;
 
-import javax.swing.KeyStroke;
+import java.util.List;
 
-import org.fife.ui.autocomplete.AutoCompletion;
-import org.fife.ui.autocomplete.CompletionCellRenderer;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
-import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
-import org.fife.ui.rsyntaxtextarea.folding.FoldParserManager;
+import org.junit.Test;
 
-import eu.mihosoft.vrl.lang.visual.EditorConfiguration;
-import eu.mihosoft.vrl.reflection.VisualCanvas;
+public class GroovyCompletionProviderTest {
 
-/**
- *
- * @author Michael Hoffer &lt;info@michaelhoffer.de&gt;
- */
-class GroovyEditorConfiguration implements EditorConfiguration {
+	@Test
+	public void testSimpleVariableCompletions() throws Exception {
 
-	GroovyCompletionProvider prov;
-	AutoCompletion ac;
-	
-	@Override
-	public void init(VisualCanvas vc) {
-		prov = new GroovyCompletionProvider();
-		ac = new AutoCompletion(prov);
+		RSyntaxTextArea textArea = new RSyntaxTextArea();
+		textArea.setText("package x.y.z; public class X {\npublic int foo(){ int i; i = 4; i++; return i; }\npublic void bar(){ System.out.println(\"X.bar()->foo()==\" + foo()); } }");
+		int idx = textArea.getText().indexOf("i = 4");
+		textArea.setCaretPosition(idx);
+		GroovyCompletionProvider provider = new GroovyCompletionProvider();
+		@SuppressWarnings("rawtypes")
+		List completions = provider.getCompletions(textArea);
+		assertTrue(completions.size()!=0);
 	}
-
-	@Override
-	public void configure(RSyntaxTextArea textArea) {
-
-		textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_GROOVY);
-		textArea.setCodeFoldingEnabled(true);
-		textArea.setAntiAliasingEnabled(true);
-
-		FoldParserManager.get().addFoldParserMapping(
-				SyntaxConstants.SYNTAX_STYLE_GROOVY, new GroovyFoldParser());
-
-		ac.setShowDescWindow(true);
-		ac.install(textArea);
-		ac.setListCellRenderer(new CompletionCellRenderer());
-
-		ac.setTriggerKey(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,
-				KeyEvent.CTRL_DOWN_MASK | KeyEvent.ALT_DOWN_MASK));
-	}
-
-	@Override
-	public String getLanguage() {
-		return "groovy";
-	}
-
 }
