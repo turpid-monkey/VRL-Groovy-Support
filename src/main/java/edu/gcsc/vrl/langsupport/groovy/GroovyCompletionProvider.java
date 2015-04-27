@@ -26,13 +26,17 @@
 package edu.gcsc.vrl.langsupport.groovy;
 
 import eu.mihosoft.vrl.instrumentation.VRLVisualizationTransformation;
+import eu.mihosoft.vrl.lang.model.ClassDeclaration;
 import eu.mihosoft.vrl.lang.model.CodeRange;
+import eu.mihosoft.vrl.lang.model.IParameter;
+import eu.mihosoft.vrl.lang.model.MethodDeclaration;
 import eu.mihosoft.vrl.lang.model.Scope;
 import eu.mihosoft.vrl.lang.model.UIBinding;
 import eu.mihosoft.vrl.lang.model.Variable;
 import groovy.lang.GroovyClassLoader;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -43,18 +47,27 @@ import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.customizers.ASTTransformationCustomizer;
 import org.fife.ui.autocomplete.Completion;
 import org.fife.ui.autocomplete.DefaultCompletionProvider;
+import org.fife.ui.autocomplete.FunctionCompletion;
+import org.fife.ui.autocomplete.ParameterizedCompletion;
+import org.fife.ui.autocomplete.ParameterizedCompletion.Parameter;
 import org.fife.ui.autocomplete.VariableCompletion;
 
 public class GroovyCompletionProvider extends DefaultCompletionProvider {
+	
+	public GroovyCompletionProvider() {
+		setParameterizedCompletionParams('(', ",", ')');
+	}
 
 	@SuppressWarnings("rawtypes")
 	@Override
 	protected List getCompletionsImpl(JTextComponent textComponent) {
+		super.clear();
+		UIBinding.scopes.clear();
+		
+		
 		List<Completion> completions = new ArrayList<Completion>();
 		String groovyScript = textComponent.getText();
 
-		UIBinding.scopes.clear();
-		
 		CompilerConfiguration conf = new CompilerConfiguration();
 		conf.addCompilationCustomizers(new ASTTransformationCustomizer(
 				new VRLVisualizationTransformation()));
@@ -86,6 +99,21 @@ public class GroovyCompletionProvider extends DefaultCompletionProvider {
 					VariableCompletion var = new VariableCompletion(this, v.getName(),
 							v.getType().getShortName());
                     completions.add(var);
+				}
+				if (s instanceof ClassDeclaration)
+				{
+					for (MethodDeclaration m : ((ClassDeclaration)s).getDeclaredMethods())
+					{
+						FunctionCompletion func = new FunctionCompletion(this, m.getName(), m.getReturnType().getShortName());
+						List<Parameter> params = new ArrayList<ParameterizedCompletion.Parameter>();
+						for (IParameter p : m.getParameters().getParamenters())
+						{
+							Parameter param = new Parameter(p.getName(),p.getType().getShortName());
+							params.add(param);
+						}
+						func.setParams(params);
+						completions.add(func);
+					}
 				}
 			}
 			recurse(s.getScopes(), cursor, completions);
